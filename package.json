@@ -1,0 +1,14 @@
+{
+  "name": "awsclinode",
+  "version": "1.0.0",
+  "description": "Gets list of users from Cognito Idp users pool and updated their emails as verified.",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "MrClockOff",
+  "license": "ISC",
+  "dependencies": {
+    "aws-cli-js": "^2.0.5",
+    "csv-parse": "^4.4.3"
+  }
+}
