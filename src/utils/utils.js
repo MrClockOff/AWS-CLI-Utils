@@ -101,7 +101,7 @@ const findUser = async (aws, email) => {
     }
 
     // Find user
-    const username = `--username Cognito_${email.replace('@', '-')}`;
+    const username = `--username Cognito_${email.toLoweCase().replace('@', '-')}`;
     const userPoolId = `--user-pool-id ${process.env.AWS_COGNITO_USER_POOL_ID}`;
     const findCommand = `cognito-idp admin-get-user ${userPoolId} ${username}`
     const result = await aws.command(findCommand);
