@@ -78,9 +78,16 @@ const getAllUnverifiedUsers = async () => {
 /**
  * Verify user email
  */
-const verifyUserEmail = async (email) => {
+const verifyUserEmail = async ({email, username}) => {
     const aws = getAwsCli();
-    const user = await findUser(aws, email);
+    let user; 
+    
+    if (email) {
+        user = await findUserByEmail(aws, email);
+    } else {
+        user = await findUserByUsername(aws, username);
+    }
+    
     const emailVerifiedAttribute = user.UserAttributes.find(a => a.Name === 'email_verified') || {};
 
     if (emailVerifiedAttribute.Value === 'true') {
@@ -95,15 +102,27 @@ const verifyUserEmail = async (email) => {
     return user;
 }
 
-const findUser = async (aws, email) => {
+const findUserByEmail = async (aws, email) => {
     if (!email) {
         throw new Error('Email parameter is required!');
     }
 
     // Find user
-    const username = `--username Cognito_${email.toLowerCase().replace('@', '-')}`;
+    const username = `Cognito_${email.toLowerCase().replace('@', '-')}`;
+    const result = await findUserByUsername(aws, username);
+
+    return result;
+}
+
+const findUserByUsername = async (aws, username) => {
+    if (!username) {
+        throw new Error('Username parameter is required!');
+    }
+
+    // Find user
+    const cognitoUsername = `--username ${username}`;
     const userPoolId = `--user-pool-id ${process.env.AWS_COGNITO_USER_POOL_ID}`;
-    const findCommand = `cognito-idp admin-get-user ${userPoolId} ${username}`
+    const findCommand = `cognito-idp admin-get-user ${userPoolId} ${cognitoUsername}`
     const result = await aws.command(findCommand);
 
     if (result.error) {
@@ -129,9 +148,9 @@ const updateEmailVerifiedAttribute = async (aws, user) => {
 /******************************************* */
 
 /**
- * Verify list of emails from CSV file
+ * Verify list of emails from CSV file of emails
  */
-const verifyUserEmailsFromFile = async (filePath) => {
+const verifyUserEmailsFromFileOfEmails = async (filePath) => {
     const emails = await csvToArray(filePath);
     const verifiedEmails = [];
     const skippedEmails = [];
@@ -142,7 +161,7 @@ const verifyUserEmailsFromFile = async (filePath) => {
         console.log('Verifying email: ', email);
 
         try {
-            const user = await verifyUserEmail(email);
+            const user = await verifyUserEmail({email});
 
             if (user.message) {
                 console.log('Email already verified: ', email);
@@ -177,9 +196,44 @@ const csvToArray = async (filePath) => {
         }
     });
 }
+/******************************************* */
+
+/**
+ * Verify list of emails from CSV file of usernames
+ */
+const verifyUserEmailsFromFileOfUsernames = async (filePath) => {
+    const usernames = await csvToArray(filePath);
+    const verifiedUsernames = [];
+    const skippedUsernames = [];
+    const failedUsernames = [];
+
+    while(usernames.length) {
+        const username = usernames.pop();
+        console.log('Verifying username: ', username);
+
+        try {
+            const user = await verifyUserEmail({username});
+
+            if (user.message) {
+                console.log('Username has email already verified: ', username);
+                skippedUsernames.push(username);    
+            } else {
+                console.log('Username email verified: ', username);
+                verifiedUsernames.push(username);
+            }
+        } catch (e) {
+            console.log('Verification failed for username email: ', username);
+            failedUsernames.push(username);
+        }
+    }
+    
+    return {verifiedUsernames, skippedUsernames, failedUsernames};
+}
+/******************************************* */
 
 module.exports = {
     getAllUnverifiedUsers,
     verifyUserEmail,
-    verifyUserEmailsFromFile
+    verifyUserEmailsFromFileOfEmails,
+    verifyUserEmailsFromFileOfUsernames
 }
