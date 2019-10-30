@@ -9,6 +9,6 @@
   "license": "ISC",
   "dependencies": {
     "aws-cli-js": "^2.0.5",
-    "csv-parse": "^4.4.3"
+    "csv-parse": "^4.4.6"
   }
 }
